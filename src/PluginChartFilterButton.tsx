@@ -1,89 +1,157 @@
-/**
- * Licensed to the Apache Software Foundation (ASF) under one
- * or more contributor license agreements.  See the NOTICE file
- * distributed with this work for additional information
- * regarding copyright ownership.  The ASF licenses this file
- * to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance
- * with the License.  You may obtain a copy of the License at
- *
- *   http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing,
- * software distributed under the License is distributed on an
- * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
- * KIND, either express or implied.  See the License for the
- * specific language governing permissions and limitations
- * under the License.
- */
-import React, { useEffect, createRef } from 'react';
-import { styled } from '@superset-ui/core';
+import React, { MouseEvent, useEffect, createRef } from 'react';
+import { DataRecordValue, styled } from '@superset-ui/core';
 import { PluginChartFilterButtonProps, PluginChartFilterButtonStylesProps } from './types';
 
-// The following Styles component is a <div> element, which has been styled using Emotion
-// For docs, visit https://emotion.sh/docs/styled
-
-// Theming variables are provided for your use via a ThemeProvider
-// imported from @superset-ui/core. For variables available, please visit
-// https://github.com/apache-superset/superset-ui/blob/master/packages/superset-ui-core/src/style/index.ts
 
 const Styles = styled.div<PluginChartFilterButtonStylesProps>`
-  background-color: ${({ theme }) => theme.colors.secondary.light2};
-  padding: ${({ theme }) => theme.gridUnit * 4}px;
-  border-radius: ${({ theme }) => theme.gridUnit * 2}px;
+  background: transparent;
+  padding: ${({ theme }) => theme.gridUnit * 2}px 0;
+  border-radius: 0;
   height: ${({ height }) => height}px;
   width: ${({ width }) => width}px;
 
   h3 {
-    /* You can use your props to control CSS! */
     margin-top: 0;
     margin-bottom: ${({ theme }) => theme.gridUnit * 3}px;
-    font-size: ${({ theme, headerFontSize }) =>
-      theme.typography.sizes[headerFontSize]}px;
-    font-weight: ${({ theme, boldText }) =>
-      theme.typography.weights[boldText ? 'bold' : 'normal']};
+    font-size: ${({ theme }) => theme.typography.sizes.l}px;
+    font-weight: ${({ theme }) => theme.typography.weights.bold};
+    color: #1f2937;
   }
 
-  pre {
-    height: ${({ theme, headerFontSize, height }) =>
-      height - theme.gridUnit * 12 - theme.typography.sizes[headerFontSize]}px;
+  .button-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: ${({ theme }) => theme.gridUnit * 2}px;
   }
+
+  .phone-button {
+    border: none;
+    border-radius: 999px;
+    padding: 10px 16px;
+    background: #ffffff;
+    color: #1f2937;
+    font-weight: 600;
+    cursor: pointer;
+    box-shadow: 0 4px 14px rgba(15, 23, 42, 0.08);
+    transition:
+      transform 0.15s ease,
+      box-shadow 0.15s ease,
+      background 0.15s ease;
+  }
+
+  .phone-button:hover {
+    transform: translateY(-1px);
+    background: #e0f2fe;
+    box-shadow: 0 8px 20px rgba(14, 116, 144, 0.18);
+  }
+
+  .phone-button:active {
+    transform: translateY(0);
+    box-shadow: 0 3px 10px rgba(15, 23, 42, 0.12);
+  }
+
+  .phone-button.active {
+    background: #e0f2fe;
+    color: #0958d9;
+    box-shadow: 0 8px 20px rgba(14, 116, 144, 0.18);
+  }
+
 `;
 
-/**
- * ******************* WHAT YOU CAN BUILD HERE *******************
- *  In essence, a chart is given a few key ingredients to work with:
- *  * Data: provided via `props.data`
- *  * A DOM element
- *  * FormData (your controls!) provided as props by transformProps.ts
- */
+function isSelected(
+  selectedValues: DataRecordValue[] | null | undefined,
+  value: string,
+) {
+  return !!selectedValues?.some(selected => String(selected) === value);
+}
+
 
 export default function PluginChartFilterButton(props: PluginChartFilterButtonProps) {
-  // height and width are the height and width of the DOM element as it exists in the dashboard.
-  // There is also a `data` prop, which is, of course, your DATA 🎉
-  const { data, height, width } = props;
+  const {
+    data,
+    height,
+    width,
+    labelColumn,
+    phoneColumn,
+    selectedValues,
+    setDataMask,
+  } = props;
 
   const rootElem = createRef<HTMLDivElement>();
 
-  // Often, you just want to access the DOM and do whatever you want.
-  // Here, you can do that with createRef, and the useEffect hook.
+
   useEffect(() => {
     const root = rootElem.current as HTMLElement;
     console.log('Plugin element', root);
   });
 
-  console.log('Plugin props', props);
+  const applyFilter = (phone: string | null, label?: string) => {
+    const values = phone ? [phone] : [];
+
+    setDataMask({
+      extraFormData: {
+        filters: values.length
+          ? [
+              {
+                col: phoneColumn,
+                op: 'IN',
+                val: values,
+              },
+            ]
+          : [],
+      },
+      filterState: {
+        value: values.length ? values : null,
+        selectedValues: values.length ? values : null,
+        label: label ?? null,
+      },
+    });
+  };
+
+  const handleClick = (
+    event: MouseEvent<HTMLButtonElement>,
+    phone: string,
+    label: string,
+  ) => {
+    event.preventDefault();
+
+    if (isSelected(selectedValues, phone)) {
+      applyFilter(null);
+      return;
+    }
+
+    applyFilter(phone, label);
+  };
 
   return (
-    <Styles
-      ref={rootElem}
-      boldText={props.boldText}
-      headerFontSize={props.headerFontSize}
-      height={height}
-      width={width}
-    >
-      <h3>{props.headerText}</h3>
-      <pre>${JSON.stringify(data, null, 2)}</pre>
-    </Styles>
-  );
+  <Styles
+    ref={rootElem}
+    height={height}
+    width={width}
+  >
+    <h3>{props.headerText}</h3>
+    <div className="button-grid">
+      {data.map((row, index) => (
+        <button
+          className={`phone-button${
+            isSelected(selectedValues, String(row[phoneColumn]))
+              ? ' active'
+              : ''
+          }`}
+          key={index}
+          onClick={event =>
+            handleClick(
+              event,
+              String(row[phoneColumn]),
+              String(row[labelColumn] ?? row[phoneColumn]),
+            )
+          }
+          type="button"
+        >
+          {String(row[labelColumn])}
+        </button>
+      ))}
+    </div>
+  </Styles>
+);
 }

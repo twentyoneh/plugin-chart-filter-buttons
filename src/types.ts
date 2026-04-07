@@ -17,28 +17,26 @@
  * under the License.
  */
 import {
-  QueryFormData,
-  supersetTheme,
+  DataRecordValue,
+  SetDataMaskHook,
   TimeseriesDataRecord,
 } from '@superset-ui/core';
 
 export interface PluginChartFilterButtonStylesProps {
   height: number;
   width: number;
-  headerFontSize: keyof typeof supersetTheme.typography.sizes;
-  boldText: boolean;
 }
 
 interface PluginChartFilterButtonCustomizeProps {
   headerText: string;
 }
 
-export type PluginChartFilterButtonQueryFormData = QueryFormData &
-  PluginChartFilterButtonStylesProps &
-  PluginChartFilterButtonCustomizeProps;
-
 export type PluginChartFilterButtonProps = PluginChartFilterButtonStylesProps &
   PluginChartFilterButtonCustomizeProps & {
     data: TimeseriesDataRecord[];
+    setDataMask: SetDataMaskHook;
+    phoneColumn: string;
+    labelColumn: string;
+    selectedValues?: DataRecordValue[] | null;
     // add typing here for the props you pass in from transformProps.ts!
   };
