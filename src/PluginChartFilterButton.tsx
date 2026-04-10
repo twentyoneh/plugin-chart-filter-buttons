@@ -1,4 +1,4 @@
-import React, { MouseEvent, useEffect, createRef } from 'react';
+import React, { MouseEvent, useEffect, useMemo, useRef } from 'react';
 import { DataRecordValue, styled } from '@superset-ui/core';
 import { PluginChartFilterButtonProps, PluginChartFilterButtonStylesProps } from './types';
 
@@ -65,6 +65,34 @@ function isSelected(
   return !!selectedValues?.some(selected => String(selected) === value);
 }
 
+interface FilterButtonOption {
+  phone: string;
+  label: string;
+}
+
+function buildButtonOptions(
+  data: PluginChartFilterButtonProps['data'],
+  phoneColumn: string,
+  labelColumn: string,
+) {
+  const seenPhones = new Set<string>();
+
+  return data.reduce<FilterButtonOption[]>((acc, row) => {
+    const phone = String(row[phoneColumn]);
+    if (seenPhones.has(phone)) {
+      return acc;
+    }
+
+    seenPhones.add(phone);
+    acc.push({
+      phone,
+      label: String(row[labelColumn] ?? row[phoneColumn]),
+    });
+
+    return acc;
+  }, []);
+}
+
 
 export default function PluginChartFilterButton(props: PluginChartFilterButtonProps) {
   const {
@@ -77,13 +105,43 @@ export default function PluginChartFilterButton(props: PluginChartFilterButtonPr
     setDataMask,
   } = props;
 
-  const rootElem = createRef<HTMLDivElement>();
+  const cachedButtonOptionsRef = useRef<FilterButtonOption[]>([]);
 
+  const buttonOptionsFromData = useMemo(
+    () => buildButtonOptions(data, phoneColumn, labelColumn),
+    [data, labelColumn, phoneColumn],
+  );
 
   useEffect(() => {
-    const root = rootElem.current as HTMLElement;
-    console.log('Plugin element', root);
-  });
+    if (!selectedValues?.length) {
+      cachedButtonOptionsRef.current = buttonOptionsFromData;
+      return;
+    }
+
+    if (!cachedButtonOptionsRef.current.length) {
+      cachedButtonOptionsRef.current = buttonOptionsFromData;
+      return;
+    }
+
+    const seenPhones = new Set(
+      cachedButtonOptionsRef.current.map(option => option.phone),
+    );
+    const mergedOptions = [...cachedButtonOptionsRef.current];
+
+    buttonOptionsFromData.forEach(option => {
+      if (!seenPhones.has(option.phone)) {
+        seenPhones.add(option.phone);
+        mergedOptions.push(option);
+      }
+    });
+
+    cachedButtonOptionsRef.current = mergedOptions;
+  }, [buttonOptionsFromData, selectedValues]);
+
+  const buttonOptions =
+    selectedValues?.length && cachedButtonOptionsRef.current.length
+      ? cachedButtonOptionsRef.current
+      : buttonOptionsFromData;
 
   const applyFilter = (phone: string | null, label?: string) => {
     const values = phone ? [phone] : [];
@@ -125,30 +183,29 @@ export default function PluginChartFilterButton(props: PluginChartFilterButtonPr
 
   return (
   <Styles
-    ref={rootElem}
     height={height}
     width={width}
   >
     <h3>{props.headerText}</h3>
     <div className="button-grid">
-      {data.map((row, index) => (
+      {buttonOptions.map(option => (
         <button
           className={`phone-button${
-            isSelected(selectedValues, String(row[phoneColumn]))
+            isSelected(selectedValues, option.phone)
               ? ' active'
               : ''
           }`}
-          key={index}
+          key={option.phone}
           onClick={event =>
             handleClick(
               event,
-              String(row[phoneColumn]),
-              String(row[labelColumn] ?? row[phoneColumn]),
+              option.phone,
+              option.label,
             )
           }
           type="button"
         >
-          {String(row[labelColumn])}
+          {option.label}
         </button>
       ))}
     </div>

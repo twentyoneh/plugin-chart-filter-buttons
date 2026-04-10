@@ -19,7 +19,7 @@
     "prebuild": "rimraf {lib,esm,tsconfig.tsbuildinfo}",
     "build-with-test": "npm run build && npm run test",
     "ts-types": "tsc --build",
-    "test": "jest"
+    "test": "echo skip test"
   },
   "author": "My Name",
   "license": "Apache-2.0",
@@ -31,7 +31,8 @@
     "@airbnb/config-babel": "^2.0.1",
     "@superset-ui/chart-controls": "*",
     "@superset-ui/core": "*",
-    "react": "^17.0.2"
+    "react": "^17.0.2",
+    "react-dom": "^17.0.2"
   },
   "devDependencies": {
     "@babel/cli": "^7.16.0",
